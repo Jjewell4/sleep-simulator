@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1026" />
+<title>Sleep Simulator 3000</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>%F0%9F%98%B4</text></svg>" />
+<style>
+  :root {
+    --sky-top: #0b1026;
+    --sky-mid: #17204a;
+    --sky-low: #2a2f6b;
+    --moon: #f5f3d0;
+    --ink: #cdd6ff;
+    --accent: #8be9fd;
+    --z: #fff8b0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #05060f;
+    overflow: hidden;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    -webkit-font-smoothing: none;
+  }
+
+  #scene {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
+    overflow: hidden;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+  }
+
+  /* Twinkling pixel stars (generated in JS) */
+  .star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #fff;
+    opacity: .85;
+    animation: twinkle 3s steps(2) infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: .2; }
+    50%      { opacity: 1; }
+  }
+
+  /* Chunky pixel moon */
+  #moon {
+    position: absolute;
+    top: 9%;
+    right: 12%;
+    width: 84px;
+    height: 84px;
+    background: var(--moon);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 6px rgba(245,243,208,.10),
+      0 0 0 14px rgba(245,243,208,.06),
+      0 0 40px 10px rgba(245,243,208,.25);
+    animation: moon-bob 6.8s ease-in-out infinite;
+  }
+  #moon::before, #moon::after {
+    content: "";
+    position: absolute;
+    background: #d9d6a8;
+    border-radius: 50%;
+  }
+  #moon::before { width: 16px; height: 16px; top: 20px; left: 22px; }
+  #moon::after  { width: 12px; height: 12px; top: 46px; left: 30px;
+                  box-shadow: 24px -20px 0 -1px #d9d6a8; }
+  @keyframes moon-bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-8px); }
+  }
+
+  /* Rolling pixel hills */
+  .hill {
+    position: absolute;
+    left: -5%;
+    width: 110%;
+    border-radius: 50% 50% 0 0;
+  }
+  #hill-back  { bottom: 0; height: 34%; background: #1c2350; }
+  #hill-front { bottom: 0; height: 22%; background: #262f66; }
+
+  /* ---- The sleeper ---- */
+  #sleeper {
+    position: absolute;
+    left: 50%;
+    bottom: 16%;
+    transform: translateX(-50%);
+    width: 148px;
+    height: 108px;
+  }
+
+  /* bed frame + mattress (static — furniture doesn't breathe) */
+  #mattress {
+    position: absolute; bottom: 0; left: 8px;
+    width: 132px; height: 22px;
+    background: #4b5bd6;
+    border: 4px solid #2c357f;
+  }
+  #footboard {
+    position: absolute; bottom: 0; right: 4px;
+    width: 10px; height: 30px;
+    background: #3a4599;
+    border: 4px solid #2c357f;
+  }
+  #headboard {
+    position: absolute; bottom: 0; left: 4px;
+    width: 10px; height: 40px;
+    background: #3a4599;
+    border: 4px solid #2c357f;
+  }
+  #pillow {
+    position: absolute; bottom: 20px; left: 14px;
+    width: 40px; height: 20px;
+    background: #eef1ff;
+    border: 4px solid #b9c0ef;
+    border-radius: 6px;
+  }
+
+  /* the sleeper's head resting on the pillow */
+  #head {
+    position: absolute; bottom: 30px; left: 30px;
+    width: 30px; height: 30px;
+    background: #ffd9a8;
+    border: 4px solid #c9a06a;
+    border-radius: 6px;
+    z-index: 3;
+  }
+  /* closed eye */
+  #eye {
+    position: absolute; top: 12px; left: 6px;
+    width: 12px; height: 4px;
+    background: #6b4a2a;
+    border-radius: 2px;
+  }
+  /* rosy sleepy cheek */
+  #cheek {
+    position: absolute; top: 18px; left: 4px;
+    width: 6px; height: 4px;
+    background: #ffb0a0;
+    opacity: .8;
+  }
+  /* little smile */
+  #mouth {
+    position: absolute; top: 20px; left: 14px;
+    width: 8px; height: 3px;
+    background: #c98a6a;
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* body/chest under the blanket — THIS is what breathes */
+  #body {
+    position: absolute; bottom: 18px; left: 56px;
+    width: 78px; height: 26px;
+    background: #7b5bd6;
+    border: 4px solid #4c3690;
+    border-radius: 10px 14px 0 0;
+    z-index: 2;
+    transform-origin: bottom center;
+    animation: breathe 3.4s ease-in-out infinite;
+  }
+  /* blanket fold line */
+  #body::before {
+    content: ""; position: absolute;
+    top: 8px; left: 0; right: 0;
+    height: 4px;
+    background: #9878e6;
+  }
+  @keyframes breathe {
+    0%, 100% { transform: scaleY(1);    }
+    50%      { transform: scaleY(1.12); }
+  }
+
+  /* ---- Floating Z's — emit from the head ---- */
+  #zzz-anchor {
+    position: absolute;
+    left: 62px;    /* just above the head */
+    bottom: 60px;
+    z-index: 4;
+    pointer-events: none;
+  }
+  .zzz {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    color: var(--z);
+    font-size: 18px;
+    text-shadow: 2px 2px 0 #b58900;
+    opacity: 0;
+    animation: floatZ 3.4s linear infinite;
+  }
+  .zzz:nth-child(2) { animation-delay: 1.13s; font-size: 24px; }
+  .zzz:nth-child(3) { animation-delay: 2.26s; font-size: 30px; }
+  @keyframes floatZ {
+    0%   { opacity: 0; transform: translate(0, 0)        rotate(0deg)   scale(.6); }
+    15%  { opacity: 1; }
+    80%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(34px, -150px) rotate(12deg) scale(1.2); }
+  }
+
+  /* ---- HUD ---- */
+  #hud {
+    position: absolute;
+    top: calc(6% + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: var(--ink);
+    width: 100%;
+    padding: 0 12px;
+    pointer-events: none;
+  }
+  #title {
+    font-size: clamp(14px, 4.5vw, 28px);
+    color: var(--accent);
+    text-shadow: 3px 3px 0 #1b2a6b, 0 0 18px rgba(139,233,253,.5);
+    letter-spacing: 1px;
+    line-height: 1.4;
+    animation: title-pulse 3.4s ease-in-out infinite;
+  }
+  @keyframes title-pulse {
+    0%, 100% { text-shadow: 3px 3px 0 #1b2a6b, 0 0 10px rgba(139,233,253,.35); }
+    50%      { text-shadow: 3px 3px 0 #1b2a6b, 0 0 26px rgba(139,233,253,.8); }
+  }
+  #tagline {
+    margin-top: 14px;
+    font-size: clamp(7px, 2.2vw, 11px);
+    color: #9aa6e6;
+    line-height: 1.8;
+  }
+
+  /* Sleep counter */
+  #counter {
+    position: absolute;
+    bottom: calc(6% + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: var(--z);
+    pointer-events: none;
+    width: 100%;
+    padding: 0 12px;
+  }
+  #hours {
+    font-size: clamp(16px, 6vw, 40px);
+    text-shadow: 3px 3px 0 #7a5a00;
+    display: block;
+  }
+  #hours-label {
+    font-size: clamp(6px, 2vw, 10px);
+    color: #cdd6ff;
+    margin-top: 10px;
+    display: block;
+    line-height: 1.7;
+  }
+
+  /* tap hint */
+  #hint {
+    position: absolute;
+    bottom: calc(2% + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(6px, 2vw, 9px);
+    color: #6f7bbf;
+    animation: blink 1.4s steps(2) infinite;
+    pointer-events: none;
+  }
+  @keyframes blink { 0%,100%{opacity:.25} 50%{opacity:1} }
+
+  /* CRT scanline overlay */
+  #scene::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,.10) 3px,
+      rgba(0,0,0,.10) 4px
+    );
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  /* Snore burst text when tapped */
+  .snore {
+    position: absolute;
+    color: #fff;
+    font-size: 18px;
+    text-shadow: 2px 2px 0 #b58900;
+    pointer-events: none;
+    animation: snorePop .9s ease-out forwards;
+    z-index: 6;
+  }
+  @keyframes snorePop {
+    0%   { opacity: 1; transform: translate(-50%,-50%) scale(.4); }
+    100% { opacity: 0; transform: translate(-50%,-140%) scale(1.3); }
+  }
+
+  /* Short viewports: shrink the scene so nothing overlaps */
+  @media (max-height: 520px) {
+    #sleeper { transform: translateX(-50%) scale(.72); bottom: 20%; }
+    #tagline { display: none; }
+    #hours-label { margin-top: 6px; }
+  }
+
+  /* Respect reduced motion — stop decorative loops entirely */
+  @media (prefers-reduced-motion: reduce) {
+    .star, #moon, .zzz, #title, #hint, #body, .snore {
+      animation: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="scene" role="button" tabindex="0" aria-label="Sleep Simulator. Press to sleep faster.">
+  <div id="moon"></div>
+  <div id="hill-back" class="hill"></div>
+  <div id="hill-front" class="hill"></div>
+
+  <div id="hud">
+    <div id="title">SLEEP&nbsp;SIMULATOR&nbsp;3000</div>
+    <div id="tagline">WHY SLEEP WHEN YOU CAN SIMULATE IT?<br>100% SCIENTIFICALLY UNPROVEN&trade;</div>
+  </div>
+
+  <div id="sleeper">
+    <div id="headboard"></div>
+    <div id="footboard"></div>
+    <div id="mattress"></div>
+    <div id="pillow"></div>
+    <div id="body"></div>
+    <div id="head">
+      <div id="eye"></div>
+      <div id="cheek"></div>
+      <div id="mouth"></div>
+    </div>
+    <div id="zzz-anchor">
+      <div class="zzz">Z</div>
+      <div class="zzz">Z</div>
+      <div class="zzz">Z</div>
+    </div>
+  </div>
+
+  <div id="counter">
+    <span id="hours">0.0</span>
+    <span id="hours-label">HOURS OF SLEEP SIMULATED<br>YOU MAY NOW SKIP TONIGHT</span>
+  </div>
+
+  <div id="hint">&#9654; TAP TO SLEEP FASTER &#9664;</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var scene = document.getElementById("scene");
+  var hoursEl = document.getElementById("hours");
+
+  /* ---- pixel starfield ---- */
+  var starCount = 46;
+  var frag = document.createDocumentFragment();
+  for (var i = 0; i < starCount; i++) {
+    var s = document.createElement("div");
+    s.className = "star";
+    s.style.left = (Math.random() * 100).toFixed(2) + "%";
+    s.style.top = (Math.random() * 66).toFixed(2) + "%";
+    s.style.animationDelay = (Math.random() * 3).toFixed(2) + "s";
+    var sz = 2 + Math.floor(Math.random() * 3);
+    s.style.width = sz + "px";
+    s.style.height = sz + "px";
+    frag.appendChild(s);
+  }
+  scene.insertBefore(frag, scene.firstChild);
+
+  /* ---- ticking sleep counter ---- */
+  var hours = 0;
+  var baseRate = 0.5;   // races upward on its own so the gag lands with zero interaction
+  var boost = 0;
+
+  function render() {
+    hoursEl.textContent = hours.toFixed(1);
+  }
+
+  var timer = null;
+  function tick() {
+    hours += baseRate + boost;
+    if (boost > 0) boost = Math.max(0, boost - 0.15);
+    if (hours > 9999) hours = 9999;
+    render();
+  }
+  function startTimer() {
+    if (timer === null) timer = setInterval(tick, 500);
+  }
+  function stopTimer() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+  }
+  // Pause when the tab is hidden — this page is literally meant to be left open.
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) stopTimer(); else startTimer();
+  });
+  startTimer();
+
+  /* ---- tap to sleep faster (capped DOM churn) ---- */
+  var SNORE_WORDS = ["Zzz!", "ZZZ", "*snore*", "huahh...", "Zzz~", "zzZ"];
+  var MAX_SNORES = 20;
+  var activeSnores = 0;
+
+  function snoreAt(x, y) {
+    if (activeSnores >= MAX_SNORES) return;
+    activeSnores++;
+    var el = document.createElement("div");
+    el.className = "snore";
+    el.textContent = SNORE_WORDS[Math.floor(Math.random() * SNORE_WORDS.length)];
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    scene.appendChild(el);
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      activeSnores--;
+    }, 900);
+  }
+
+  function boostSleep(clientX, clientY) {
+    boost = Math.min(boost + 0.6, 3);
+    hours += 0.3;
+    render();
+    var rect = scene.getBoundingClientRect();
+    var x = (clientX == null ? rect.width / 2 : clientX - rect.left);
+    var y = (clientY == null ? rect.height / 2 : clientY - rect.top);
+    snoreAt(x, y);
+  }
+
+  scene.addEventListener("click", function (e) {
+    boostSleep(e.clientX, e.clientY);
+  });
+
+  scene.addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === " ") && !e.repeat) {
+      e.preventDefault();
+      boostSleep(null, null);
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
